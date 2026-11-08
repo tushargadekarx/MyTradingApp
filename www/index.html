@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>My Trading</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1220;color:#e8eef8;font-family:Arial,sans-serif;padding-bottom:30px}
+header{padding:18px;display:flex;justify-content:space-between;align-items:center;background:#111c2e}
+h2{margin:0;color:#38bdf8}
+small,.muted{color:#91a1b8}
+main{padding:14px}
+.card{background:#152238;border:1px solid #263750;border-radius:14px;padding:15px;margin-bottom:14px}
+.label{color:#91a1b8;font-size:12px}
+.balance{font-size:29px;font-weight:bold;margin:8px 0}
+.green{color:#22c55e}.red{color:#ef4444}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select,input{background:#0b1728;color:white;border:1px solid #354760;border-radius:8px;padding:12px;width:100%;margin-top:7px;font-size:14px}
+button{border:0;border-radius:9px;padding:13px;color:white;font-weight:bold;font-size:14px;cursor:pointer}
+.buy{background:#16a34a}.sell{background:#dc2626}
+.close{background:#475569;padding:8px}
+.full{width:100%;margin-top:12px;background:#2563eb}
+canvas{width:100%;height:190px;display:block}
+.tabs{display:flex;gap:8px;overflow:auto;margin-bottom:13px}
+.tabs button{background:#263750;white-space:nowrap}
+.tabs button.active{background:#0284c7}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:10px 5px;border-bottom:1px solid #304057;text-align:left}
+th{color:#91a1b8}
+.tradebtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.status{color:#22c55e;font-size:12px}
+.footer{text-align:center;color:#65758b;font-size:11px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+<div><h2>MY TRADING</h2><small>Paper Trading Terminal</small></div>
+<div class="status">● DEMO</div>
+</header>
+<main>
+<div class="card">
+<div class="row"><span class="label">ACCOUNT BALANCE</span><span class="label">USD</span></div>
+<div class="balance" id="balance">$10,000.00</div>
+<div class="grid">
+<div><div class="label">Equity</div><b id="equity">$10,000.00</b></div>
+<div><div class="label">Floating P/L</div><b id="floating">$0.00</b></div>
+<div><div class="label">Used Margin</div><b id="margin">$0.00</b></div>
+<div><div class="label">Free Margin</div><b id="free">$10,000.00</b></div>
+</div>
+</div>
+
+<div class="tabs">
+<button class="active" onclick="showTab('trade',this)">Trade</button>
+<button onclick="showTab('positions',this)">Positions</button>
+<button onclick="showTab('history',this)">History</button>
+</div>
+
+<section id="trade">
+<div class="card">
+<div class="row"><b>Market Watch</b><span class="status">● Simulated</span></div>
+<select id="pair" onchange="changePair()">
+<option>EUR/USD</option><option>GBP/USD</option>
+<option>USD/JPY</option><option>USD/CHF</option>
+<option>AUD/USD</option><option>USD/CAD</option>
+<option>NZD/USD</option>
+</select>
+<div class="row" style="margin-top:12px">
+<div><div class="label">BID</div><b id="bid">1.08500</b></div>
+<div style="text-align:right"><div class="label">ASK</div><b id="ask">1.08520</b></div>
+</div>
+</div>
+
+<div class="card">
+<div class="row"><b>Price Chart</b><select id="tf" style="width:100px;margin:0" onchange="drawChart()">
+<option>1M</option><option>5M</option><option>15M</option><option>1H</option><option>4H</option><option>1D</option>
+</select></div>
+<canvas id="chart"></canvas>
+<small>Illustrative simulated candlesticks</small>
+</div>
+
+<div class="card">
+<b>Place New Order</b>
+<div class="grid" style="margin-top:12px">
+<label class="label">Lot Size<input id="lots" type="number" value="0.01" min="0.01" max="10" step="0.01"></label>
+<label class="label">Leverage<select id="lev"><option value="100">1:100</option><option value="50">1:50</option><option value="30">1:30</option><option value="10">1:10</option></select></label>
+<label class="label">Stop Loss<input id="sl" type="number" placeholder="Optional"></label>
+<label class="label">Take Profit<input id="tp" type="number" placeholder="Optional"></label>
+</div>
+<div class="tradebtn">
+<button class="buy" onclick="place('BUY')">BUY</button>
+<button class="sell" onclick="place('SELL')">SELL</button>
+</div>
+<small>SL/TP are optional price levels. Demo execution only.</small>
+</div>
+</section>
+
+<section id="positions" style="display:none">
+<div class="card">
+<b>Open Positions</b>
+<div id="openList" style="overflow:auto;margin-top:12px">No open trades</div>
+</div>
+</section>
+
+<section id="history" style="display:none">
+<div class="card">
+<div class="row"><b>Trade History</b><button class="close" onclick="resetHistory()">Clear</button></div>
+<div id="historyList" style="overflow:auto;margin-top:12px">No closed trades</div>
+</div>
+</section>
+
+<div class="card">
+<div class="row"><b>Account Statistics</b></div>
+<div class="grid" style="margin-top:12px">
+<div><div class="label">Total Trades</div><b id="total">0</b></div>
+<div><div class="label">Win Rate</div><b id="winrate">0%</b></div>
+<div><div class="label">Realized P/L</div><b id="realized">$0.00</b></div>
+<div><div class="label">Open Trades</div><b id="openCount">0</b></div>
+</div>
+<button class="full" onclick="resetAccount()">RESET DEMO ACCOUNT</button>
+</div>
+<div class="footer">MY TRADING APP • SIMULATED MARKET • NOT REAL TRADING</div>
+</main>
+
+<script>
+const START=10000;
+const initial={
+ balance:START,positions:[],history:[],
+ prices:{'EUR/USD':1.08500,'GBP/USD':1.27000,
+ 'USD/JPY':150.000,'USD/CHF':0.89000,
+ 'AUD/USD':0.65500,'USD/CAD':1.37000,'NZD/USD':0.61000}
+};
+let data;
+try{data=JSON.parse(localStorage.getItem('myTradingData'))||initial}
+catch(e){data=JSON.parse(JSON.stringify(initial))}
+let pair='EUR/USD';
+let candles=[];
+let spread=0.00020;
+function save(){localStorage.setItem('myTradingData',JSON.stringify(data))}
+function fmt(n){return '$'+Number(n).toFixed(2)}
+function price(){return data.prices[pair]}
+function pipValue(p){return p.includes('JPY')?0.01:0.0001}
+function quote(p){return p+(p.includes('JPY')?0.020:0.00020)}
+function showTab(tab,btn){
+['trade','positions','history'].forEach(x=>document.getElementById(x).style.display=x===tab?'block':'none');
+document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
+btn.classList.add('active');
+render();
+}
+function changePair(){
+pair=document.getElementById('pair').value;
+spread=pair.includes('JPY')?0.020:0.00020;
+candles=[];
+for(let i=0;i<40;i++)candles.push(price()*(1+(Math.random()-.5)*.002));
+update();
+}
+function drawChart(){
+let c=document.getElementById('chart'),ctx=c.getContext('2d');
+let w=c.clientWidth,h=190,dpr=window.devicePixelRatio||1;
+c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);
+ctx.clearRect(0,0,w,h);
+let vals=candles;
+let min=Math.min(...vals),max=Math.max(...vals),range=max-min||.001;
+for(let i=0;i<vals.length;i++){
+let x=8+i*(w-16)/vals.length;
+let y=h-12-(vals[i]-min)/range*(h-25);
+let change=i?vals[i]-vals[i-1]:0;
+ctx.strokeStyle=change>=0?'#22c55e':'#ef4444';
+ctx.fillStyle=ctx.strokeStyle;
+ctx.beginPath();ctx.moveTo(x,y-9);ctx.lineTo(x,y+9);ctx.stroke();
+ctx.fillRect(x-3,y-(change>=0?8:2),6,Math.max(3,Math.abs(change/range*25)));
+}
+ctx.strokeStyle='#31445f';ctx.beginPath();ctx.moveTo(0,h-10);ctx.lineTo(w,h-10);ctx.stroke();
+}
+function pnl(t){
+let current=data.prices[t.pair],diff=t.side==='BUY'?current-t.entry:t.entry-current;
+let pv=t.pair.includes('JPY')?1000:100000;
+return diff*pv*t.lots;
+}
+function place(side){
+let lots=Number(document.getElementById('lots').value);
+let sl=Number(document.getElementById('sl').value)||0;
+let tp=Number(document.getElementById('tp').value)||0;
+if(!Number.isFinite(lots)||lots<0.01||lots>10){alert('Lot size 0.01 se 10 ke beech rakho');return}
+let entry=price()+(side==='BUY'?spread/2:-spread/2);
+if(sl&&((side==='BUY'&&sl>=entry)||(side==='SELL'&&sl<=entry))){alert('Stop Loss price direction check karo');return}
+if(tp&&((side==='BUY'&&tp<=entry)||(side==='SELL'&&tp>=entry))){alert('Take Profit price direction check karo');return}
+let leverage=Number(document.getElementById('lev').value);
+let margin=lots*100000*entry/leverage;
+let used=data.positions.reduce((s,t)=>s+t.margin,0);
+if(margin>data.balance+data.positions.reduce((s,t)=>s+pnl(t),0)-used){alert('Not enough free margin');return}
+data.positions.push({id:Date.now(),pair,side,lots,entry,sl,tp,margin,leverage,time:new Date().toLocaleString()});
+save();alert(side+' demo order placed!');
+render();
+}
+function closeTrade(id,reason='Manual'){
+let i=data.positions.findIndex(t=>t.id===id);if(i<0)return;
+let t=data.positions[i],profit=pnl(t);
+data.balance+=profit;
+data.history.unshift({...t,exit:data.prices[t.pair],profit,reason,closed:new Date().toLocaleString()});
+data.positions.splice(i,1);save();render();
+}
+function render(){
+let floating=data.positions.reduce((s,t)=>s+pnl(t),0);
+let margin=data.positions.reduce((s,t)=>s+t.margin,0);
+let equity=data.balance+floating;
+document.getElementById('balance').textContent=fmt(data.balance);
+document.getElementById('equity').textContent=fmt(equity);
+document.getElementById('floating').textContent=fmt(floating);
+document.getElementById('floating').className=floating>=0?'green':'red';
+document.getElementById('margin').textContent=fmt(margin);
+document.getElementById('free').textContent=fmt(equity-margin);
+document.getElementById('realized').textContent=fmt(data.history.reduce((s,t)=>s+t.profit,0));
+document.getElementById('total').textContent=data.history.length;
+document.getElementById('openCount').textContent=data.positions.length;
+let wins=data.history.filter(t=>t.profit>0).length;
+document.getElementById('winrate').textContent=data.history.length?(wins/data.history.length*100).toFixed(1)+'%':'0%';
+document.getElementById('openList').innerHTML=data.positions.length?'<table><tr><th>Pair</th><th>Side</th><th>Lots</th><th>P/L</th><th></th></tr>'+data.positions.map(t=>`<tr><td>${t.pair}</td><td>${t.side}</td><td>${t.lots}</td><td class="${pnl(t)>=0?'green':'red'}">${fmt(pnl(t))}</td><td><button class="close" onclick="closeTrade(${t.id})">Close</button></td></tr>`).join('')+'</table>':'No open trades';
+document.getElementById('historyList').innerHTML=data.history.length?'<table><tr><th>Pair</th><th>Side</th><th>P/L</th><th>Reason</th></tr>'+data.history.map(t=>`<tr><td>${t.pair}</td><td>${t.side}</td><td class="${t.profit>=0?'green':'red'}">${fmt(t.profit)}</td><td>${t.reason}</td></tr>`).join('')+'</table>':'No closed trades';
+}
+function update(){
+let p=price();
+document.getElementById('bid').textContent=p.toFixed(pair.includes('JPY')?3:5);
+document.getElementById('ask').textContent=(p+spread).toFixed(pair.includes('JPY')?3:5);
+render();drawChart();
+}
+function resetHistory(){
+if(confirm('Clear all trade history?')){data.history=[];save();render()}
+}
+function resetAccount(){
+if(confirm('Reset balance, open positions and history to $10,000?')){
+data=JSON.parse(JSON.stringify(initial));save();changePair();render();
+}
+}
+changePair();render();
+setInterval(()=>{
+Object.keys(data.prices).forEach(p=>{
+let movement=(Math.random()-.5)*(p.includes('JPY')?.025:.00025);
+data.prices[p]=Math.max(.0001,data.prices[p]+movement);
+});
+let closed=[];
+data.positions.forEach(t=>{
+let p=data.prices[t.pair];
+if((t.side==='BUY'&&t.sl&&p<=t.sl)||(t.side==='SELL'&&t.sl&&p>=t.sl))closed.push([t.id,'Stop Loss']);
+else if((t.side==='BUY'&&t.tp&&p>=t.tp)||(t.side==='SELL'&&t.tp&&p<=t.tp))closed.push([t.id,'Take Profit']);
+});
+closed.forEach(x=>closeTrade(x[0],x[1]));
+candles.push(price());if(candles.length>40)candles.shift();
+save();update();
+},2000);
+window.addEventListener('resize',drawChart);
+</script>
+</body>
+</html>
